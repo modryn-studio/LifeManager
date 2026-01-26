@@ -23,7 +23,7 @@ class AgentService {
           .from('reminders_log')
           .select()
           .eq('couple_id', profile.coupleId)
-          .is_('acknowledged_at', null)
+          .is('acknowledged_at', null)
           .gte('sent_at', yesterday.toIso8601String())
           .order('sent_at', ascending: false);
       
@@ -70,7 +70,7 @@ class AgentService {
           .from('reminders_log')
           .update({'acknowledged_at': DateTime.now().toIso8601String()})
           .eq('couple_id', profile.coupleId)
-          .is_('acknowledged_at', null);
+          .is('acknowledged_at', null);
     } catch (e) {
       // Silently fail
     }
