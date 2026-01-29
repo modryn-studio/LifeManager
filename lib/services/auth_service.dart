@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase_client.dart';
 import '../models/models.dart';
@@ -74,9 +75,11 @@ class AuthService {
           .eq('id', user.id)
           .maybeSingle();
       
+      debugPrint('getCurrentProfile response: $response');
       if (response == null) return null;
       return Profile.fromJson(response);
     } catch (e) {
+      debugPrint('getCurrentProfile error: $e');
       return null;
     }
   }

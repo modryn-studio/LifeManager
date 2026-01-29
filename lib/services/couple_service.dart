@@ -139,6 +139,11 @@ class CoupleService {
     return (response as List).length >= 2;
   }
 
+  /// Get the current user's profile (public accessor)
+  static Future<Profile?> getCurrentProfile() async {
+    return _getProfile();
+  }
+
   static Future<Profile?> _getProfile() async {
     final user = SupabaseService.currentUser;
     if (user == null) return null;

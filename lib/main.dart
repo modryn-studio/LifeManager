@@ -92,6 +92,7 @@ class _AuthGateState extends State<AuthGate> {
     
     // Check if user has a profile
     final hasProfile = await AuthService.hasProfile();
+    debugPrint('hasProfile check: $hasProfile');
     
     if (!hasProfile) {
       // Get display name from auth metadata if available

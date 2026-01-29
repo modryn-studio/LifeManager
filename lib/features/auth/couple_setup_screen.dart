@@ -45,8 +45,21 @@ class _CoupleSetupScreenState extends State<CoupleSetupScreen> {
   }
 
   /// Check if someone invited this user to their couple
+  /// OR if they already have a profile (from a previous attempt)
   Future<void> _checkForExistingCouple() async {
     try {
+      // First check if user already has a profile
+      final existingProfile = await CoupleService.getCurrentProfile();
+      if (existingProfile != null) {
+        if (!mounted) return;
+        // Already have a profile, skip to task list
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const TaskListScreen()),
+        );
+        return;
+      }
+      
+      // Then check if someone invited this user
       final profile = await CoupleService.tryJoinExistingCouple(
         displayName: widget.displayName,
       );
@@ -62,6 +75,7 @@ class _CoupleSetupScreenState extends State<CoupleSetupScreen> {
       }
     } catch (e) {
       // Continue to manual setup
+      debugPrint('Check existing couple error: $e');
     } finally {
       if (mounted) {
         setState(() => _checkingExistingCouple = false);
@@ -98,8 +112,9 @@ class _CoupleSetupScreenState extends State<CoupleSetupScreen> {
         MaterialPageRoute(builder: (_) => const TaskListScreen()),
       );
     } catch (e) {
+      debugPrint('CoupleSetup error: $e');
       setState(() {
-        _errorMessage = 'Something went wrong. Please try again.';
+        _errorMessage = 'Error: $e';
       });
     } finally {
       if (mounted) {
