@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Task model representing a household/life task
 /// 
 /// Tasks can be:
@@ -6,6 +8,7 @@
 /// - With or without due dates (null = "when you get to it")
 /// 
 /// Categories: household, pet, health, personal, sentimental
+@immutable
 class Task {
   final String id;
   final String coupleId;

@@ -203,7 +203,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppTheme.warmPeach.withOpacity(0.2),
+                          color: AppTheme.warmPeach.withAlpha(51),
                           borderRadius: AppRadius.toast,
                         ),
                         child: Text(

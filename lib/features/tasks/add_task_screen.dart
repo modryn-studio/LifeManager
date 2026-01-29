@@ -409,7 +409,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           _category = selected ? category : null;
         });
       },
-      selectedColor: AppTheme.softSage.withOpacity(0.2),
+      selectedColor: AppTheme.softSage.withAlpha(51),
       checkmarkColor: AppTheme.softSage,
       side: BorderSide(
         color: isSelected ? AppTheme.softSage : AppTheme.cardBorder,

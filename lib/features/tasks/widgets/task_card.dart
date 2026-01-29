@@ -293,7 +293,7 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: AppTheme.mutedCoral.withOpacity(0.2),
+                                color: AppTheme.mutedCoral.withAlpha(51),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(

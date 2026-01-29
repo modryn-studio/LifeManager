@@ -58,12 +58,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         setState(() => _task = updated);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong'),
-          backgroundColor: AppTheme.warmPeach,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Something went wrong'),
+            backgroundColor: AppTheme.warmPeach,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -378,12 +380,14 @@ class _EditTaskScreenState extends State<_EditTaskScreen> {
         Navigator.of(context).pop();
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to save changes'),
-          backgroundColor: AppTheme.warmPeach,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to save changes'),
+            backgroundColor: AppTheme.warmPeach,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -512,7 +516,7 @@ class _EditTaskScreenState extends State<_EditTaskScreen> {
       onSelected: (selected) {
         setState(() => _category = selected ? category : null);
       },
-      selectedColor: AppTheme.softSage.withOpacity(0.2),
+      selectedColor: AppTheme.softSage.withAlpha(51),
       checkmarkColor: AppTheme.softSage,
       side: BorderSide(
         color: isSelected ? AppTheme.softSage : AppTheme.cardBorder,

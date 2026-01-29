@@ -114,7 +114,7 @@ class _CoupleSetupScreenState extends State<CoupleSetupScreen> {
     } catch (e) {
       debugPrint('CoupleSetup error: $e');
       setState(() {
-        _errorMessage = 'Error: $e';
+        _errorMessage = 'Something went wrong. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -229,7 +229,7 @@ class _CoupleSetupScreenState extends State<CoupleSetupScreen> {
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: AppTheme.warmPeach.withOpacity(0.2),
+                    color: AppTheme.warmPeach.withAlpha(51),
                     borderRadius: AppRadius.toast,
                   ),
                   child: Text(
@@ -258,8 +258,8 @@ class _CoupleSetupScreenState extends State<CoupleSetupScreen> {
                         )
                       : Text(
                           _partnerEmailController.text.trim().isEmpty
-                              ? "Continue Solo for Now"
-                              : "Continue",
+                              ? 'Continue Solo for Now'
+                              : 'Continue',
                         ),
                 ),
               ),
@@ -275,7 +275,7 @@ class _CoupleSetupScreenState extends State<CoupleSetupScreen> {
                       setState(() {});
                     },
                     child: Text(
-                      "Skip partner invitation",
+                      'Skip partner invitation',
                       style: AppTheme.body(
                         fontSize: 14,
                         color: AppTheme.warmGray,

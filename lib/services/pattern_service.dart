@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase_client.dart';
+import '../core/profile_helper.dart';
 import '../models/models.dart';
 
 /// Service for AI-detected task patterns
@@ -15,15 +17,14 @@ class PatternService {
   /// 
   /// Returns patterns that haven't been accepted or dismissed
   static Future<List<TaskPattern>> getPendingPatterns() async {
-    final profile = await _getProfile();
+    final profile = await ProfileHelper.getCurrentProfile();
     if (profile == null) return [];
     
     final response = await _client
         .from('task_patterns')
         .select()
         .eq('couple_id', profile.coupleId)
-        .eq('is_accepted', false)
-        .eq('is_dismissed', false)
+        .isFilter('accepted', null) // NULL = pending (not accepted or dismissed)
         .gte('confidence', 0.80) // Only show high-confidence patterns
         .order('confidence', ascending: false)
         .order('created_at', ascending: false);
@@ -38,7 +39,7 @@ class PatternService {
   /// Returns the created task
   static Future<Task> acceptPattern(TaskPattern pattern) async {
     final user = SupabaseService.currentUser;
-    final profile = await _getProfile();
+    final profile = await ProfileHelper.getCurrentProfile();
     
     if (user == null || profile == null) {
       throw Exception('Not authenticated');
@@ -47,7 +48,7 @@ class PatternService {
     // Mark pattern as accepted
     await _client
         .from('task_patterns')
-        .update({'is_accepted': true})
+        .update({'accepted': true})
         .eq('id', pattern.id);
     
     // Create the recurring task
@@ -71,13 +72,13 @@ class PatternService {
   static Future<void> dismissPattern(String patternId) async {
     await _client
         .from('task_patterns')
-        .update({'is_dismissed': true})
+        .update({'accepted': false}) // false = rejected/dismissed
         .eq('id', patternId);
   }
 
   /// Get all patterns for the couple (including accepted/dismissed)
   static Future<List<TaskPattern>> getAllPatterns() async {
-    final profile = await _getProfile();
+    final profile = await ProfileHelper.getCurrentProfile();
     if (profile == null) return [];
     
     final response = await _client
@@ -92,36 +93,26 @@ class PatternService {
   }
 
   /// Get count of pending pattern suggestions
+  /// 
+  /// Note: Returns 0 until pattern analyzer is fully implemented.
+  /// The pattern analyzer Edge Function needs to be deployed and 
+  /// task_patterns table populated before this will return non-zero.
   static Future<int> getPendingPatternCount() async {
-    final profile = await _getProfile();
-    if (profile == null) return 0;
-    
-    final response = await _client
-        .from('task_patterns')
-        .select('id')
-        .eq('couple_id', profile.coupleId)
-        .eq('is_accepted', false)
-        .eq('is_dismissed', false)
-        .gte('confidence', 0.80);
-    
-    return (response as List).length;
-  }
-
-  static Future<Profile?> _getProfile() async {
-    final user = SupabaseService.currentUser;
-    if (user == null) return null;
-    
     try {
-      final response = await _client
-          .from('profiles')
-          .select()
-          .eq('id', user.id)
-          .maybeSingle();
+      final profile = await ProfileHelper.getCurrentProfile();
+      if (profile == null) return 0;
       
-      if (response == null) return null;
-      return Profile.fromJson(response);
+      final response = await _client
+          .from('task_patterns')
+          .select('id')
+          .eq('couple_id', profile.coupleId)
+          .isFilter('accepted', null)
+          .gte('confidence', 0.80);
+      
+      return (response as List).length;
     } catch (e) {
-      return null;
+      debugPrint('PatternService.getPendingPatternCount error: $e');
+      return 0;
     }
   }
 }

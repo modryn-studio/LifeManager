@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
+
 /// Profile model representing a user in the LifeManager system
 /// 
 /// Each profile belongs to exactly one couple
 /// Partners can see each other's tasks in real-time
+@immutable
 class Profile {
   final String id;
   final String coupleId;

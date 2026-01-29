@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
+
 /// TaskPattern model for AI-detected recurring patterns
 /// 
 /// When the pattern analyzer detects that you do a task repeatedly
 /// (e.g., "clean cat box" every 3 days), it creates a suggestion
 /// 
 /// Confidence threshold: 0.80 (hardcoded)
+@immutable
 class TaskPattern {
   final String id;
   final String coupleId;
@@ -12,8 +15,7 @@ class TaskPattern {
   final int suggestedIntervalDays;
   final double confidence;
   final String? embedding;
-  final bool isAccepted;
-  final bool isDismissed;
+  final bool? accepted; // NULL = pending, true = accepted, false = rejected/dismissed
   final DateTime createdAt;
 
   const TaskPattern({
@@ -24,8 +26,7 @@ class TaskPattern {
     required this.suggestedIntervalDays,
     required this.confidence,
     this.embedding,
-    this.isAccepted = false,
-    this.isDismissed = false,
+    this.accepted,
     required this.createdAt,
   });
 
@@ -39,14 +40,13 @@ class TaskPattern {
       suggestedIntervalDays: json['suggested_interval_days'] as int,
       confidence: (json['confidence'] as num).toDouble(),
       embedding: json['embedding'] as String?,
-      isAccepted: json['is_accepted'] as bool? ?? false,
-      isDismissed: json['is_dismissed'] as bool? ?? false,
+      accepted: json['accepted'] as bool?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
 
   /// Check if this pattern is pending user action
-  bool get isPending => !isAccepted && !isDismissed;
+  bool get isPending => accepted == null;
 
   /// Get confidence as percentage string (e.g., "85%")
   String get confidencePercentage => '${(confidence * 100).round()}%';
@@ -76,8 +76,7 @@ class TaskPattern {
     int? suggestedIntervalDays,
     double? confidence,
     String? embedding,
-    bool? isAccepted,
-    bool? isDismissed,
+    bool? accepted,
     DateTime? createdAt,
   }) {
     return TaskPattern(
@@ -88,8 +87,7 @@ class TaskPattern {
       suggestedIntervalDays: suggestedIntervalDays ?? this.suggestedIntervalDays,
       confidence: confidence ?? this.confidence,
       embedding: embedding ?? this.embedding,
-      isAccepted: isAccepted ?? this.isAccepted,
-      isDismissed: isDismissed ?? this.isDismissed,
+      accepted: accepted ?? this.accepted,
       createdAt: createdAt ?? this.createdAt,
     );
   }

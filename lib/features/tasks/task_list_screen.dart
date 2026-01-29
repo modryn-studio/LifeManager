@@ -33,6 +33,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
   Profile? _currentUser;
   Profile? _partner;
   String? _morningDigest;
+  String? _pendingPartnerEmail;
   int _pendingPatternCount = 0;
   bool _isLoading = true;
   StreamSubscription<List<Task>>? _taskSubscription;
@@ -54,6 +55,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
       // Load user data
       _currentUser = await AuthService.getCurrentProfile();
       _partner = await AuthService.getPartnerProfile();
+      
+      // Cache pending partner email if no partner
+      if (_partner == null) {
+        _pendingPartnerEmail = await CoupleService.getPendingPartnerEmail();
+      }
       
       // Check for pending reminders and show notifications
       await AgentService.checkForPendingReminders();
@@ -331,7 +337,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
         color: AppTheme.suggestionBackground,
         borderRadius: AppRadius.card,
         border: Border.all(
-          color: AppTheme.mutedCoral.withOpacity(0.3),
+          color: AppTheme.mutedCoral.withAlpha(77),
           width: 1,
         ),
       ),
@@ -363,43 +369,36 @@ class _TaskListScreenState extends State<TaskListScreen> {
   }
 
   Widget _buildPartnerPendingCard() {
-    return FutureBuilder<String?>(
-      future: CoupleService.getPendingPartnerEmail(),
-      builder: (context, snapshot) {
-        final pendingEmail = snapshot.data;
-        
-        return Container(
-          padding: AppSpacing.cardPadding,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: AppRadius.card,
-            border: Border.all(
-              color: AppTheme.cardBorder,
-              width: 1,
+    return Container(
+      padding: AppSpacing.cardPadding,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: AppRadius.card,
+        border: Border.all(
+          color: AppTheme.cardBorder,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.favorite_border,
+            color: AppTheme.mutedCoral,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _pendingPartnerEmail != null
+                  ? "We'll link you when $_pendingPartnerEmail joins"
+                  : 'Add your partner to share tasks',
+              style: AppTheme.body(
+                fontSize: 14,
+                color: AppTheme.warmGray,
+              ),
             ),
           ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.favorite_border,
-                color: AppTheme.mutedCoral,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  pendingEmail != null
-                      ? "We'll link you when $pendingEmail joins"
-                      : 'Add your partner to share tasks',
-                  style: AppTheme.body(
-                    fontSize: 14,
-                    color: AppTheme.warmGray,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -459,7 +458,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(height: 48),
-          Text(
+          const Text(
             '✨',
             style: TextStyle(fontSize: 48),
           ),

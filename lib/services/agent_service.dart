@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import '../core/supabase_client.dart';
 import '../core/notification_service.dart';
-import '../models/models.dart';
+import '../core/profile_helper.dart';
+import '../core/date_utils.dart' as app_date;
 
 /// Service for checking and displaying agent messages
 /// 
@@ -13,7 +15,7 @@ class AgentService {
   /// Shows local notifications for any unacknowledged reminders
   static Future<void> checkForPendingReminders() async {
     try {
-      final profile = await _getProfile();
+      final profile = await ProfileHelper.getCurrentProfile();
       if (profile == null) return;
       
       // Get unacknowledged reminders from last 24 hours
@@ -44,7 +46,7 @@ class AgentService {
         }
       }
     } catch (e) {
-      // Silently fail - not critical
+      debugPrint('AgentService.checkForPendingReminders error: $e');
     }
   }
 
@@ -56,14 +58,14 @@ class AgentService {
           .update({'acknowledged_at': DateTime.now().toIso8601String()})
           .eq('id', reminderId);
     } catch (e) {
-      // Silently fail
+      debugPrint('AgentService.acknowledgeReminder error: $e');
     }
   }
 
   /// Acknowledge all reminders for the current couple
   static Future<void> acknowledgeAllReminders() async {
     try {
-      final profile = await _getProfile();
+      final profile = await ProfileHelper.getCurrentProfile();
       if (profile == null) return;
       
       await SupabaseService.client
@@ -72,18 +74,17 @@ class AgentService {
           .eq('couple_id', profile.coupleId)
           .filter('acknowledged_at', 'is', null);
     } catch (e) {
-      // Silently fail
+      debugPrint('AgentService.acknowledgeAllReminders error: $e');
     }
   }
 
   /// Get latest morning digest message (if any)
   static Future<String?> getLatestMorningDigest() async {
     try {
-      final profile = await _getProfile();
+      final profile = await ProfileHelper.getCurrentProfile();
       if (profile == null) return null;
       
-      final today = DateTime.now();
-      final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      final todayStr = app_date.DateUtils.todayForDb;
       
       final response = await SupabaseService.client
           .from('reminders_log')
@@ -109,25 +110,7 @@ class AgentService {
     try {
       await SupabaseService.client.functions.invoke('pattern-analyzer');
     } catch (e) {
-      // Pattern analysis can fail silently
-    }
-  }
-
-  static Future<Profile?> _getProfile() async {
-    final user = SupabaseService.currentUser;
-    if (user == null) return null;
-    
-    try {
-      final response = await SupabaseService.client
-          .from('profiles')
-          .select()
-          .eq('id', user.id)
-          .maybeSingle();
-      
-      if (response == null) return null;
-      return Profile.fromJson(response);
-    } catch (e) {
-      return null;
+      debugPrint('AgentService.triggerPatternAnalysis error: $e');
     }
   }
 }

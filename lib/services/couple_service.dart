@@ -1,5 +1,7 @@
+import 'package:email_validator/email_validator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase_client.dart';
+import '../core/profile_helper.dart';
 import '../models/models.dart';
 
 /// Service for couple pairing operations
@@ -111,24 +113,20 @@ class CoupleService {
     }
   }
 
-  /// Check if partner email is valid format (client-side validation)
+  /// Check if partner email is valid format (using email_validator package)
   static bool isValidEmailFormat(String email) {
-    // Basic email regex for format validation
-    final emailRegex = RegExp(
-      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-    );
-    return emailRegex.hasMatch(email.trim());
+    return EmailValidator.validate(email.trim());
   }
 
   /// Get pending partner email (if any) from current user's profile
   static Future<String?> getPendingPartnerEmail() async {
-    final profile = await _getProfile();
+    final profile = await ProfileHelper.getCurrentProfile();
     return profile?.pendingPartnerEmail;
   }
 
   /// Check if couple is fully linked (has 2 members)
   static Future<bool> isCoupleFullyLinked() async {
-    final profile = await _getProfile();
+    final profile = await ProfileHelper.getCurrentProfile();
     if (profile == null) return false;
     
     final response = await _client
@@ -141,24 +139,6 @@ class CoupleService {
 
   /// Get the current user's profile (public accessor)
   static Future<Profile?> getCurrentProfile() async {
-    return _getProfile();
-  }
-
-  static Future<Profile?> _getProfile() async {
-    final user = SupabaseService.currentUser;
-    if (user == null) return null;
-    
-    try {
-      final response = await _client
-          .from('profiles')
-          .select()
-          .eq('id', user.id)
-          .maybeSingle();
-      
-      if (response == null) return null;
-      return Profile.fromJson(response);
-    } catch (e) {
-      return null;
-    }
+    return ProfileHelper.getCurrentProfile();
   }
 }

@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase_client.dart';
+import '../core/profile_helper.dart';
+import '../core/date_utils.dart' as app_date;
 import '../models/models.dart';
 
 /// Service for task management operations
@@ -16,25 +19,30 @@ class TaskService {
   /// 
   /// Returns incomplete tasks first, then by due date
   static Future<List<Task>> getAllTasks() async {
-    final profile = await _getProfile();
-    if (profile == null) return [];
-    
-    final response = await _client
-        .from('tasks')
-        .select()
-        .eq('couple_id', profile.coupleId)
-        .order('is_completed', ascending: true)
-        .order('due_date', ascending: true, nullsFirst: false)
-        .order('created_at', ascending: false);
-    
-    return (response as List)
-        .map((json) => Task.fromJson(json as Map<String, dynamic>))
-        .toList();
+    try {
+      final profile = await ProfileHelper.getCurrentProfile();
+      if (profile == null) return [];
+      
+      final response = await _client
+          .from('tasks')
+          .select()
+          .eq('couple_id', profile.coupleId)
+          .order('is_completed', ascending: true)
+          .order('due_date', ascending: true, nullsFirst: false)
+          .order('created_at', ascending: false);
+      
+      return (response as List)
+          .map((json) => Task.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('TaskService.getAllTasks error: $e');
+      return [];
+    }
   }
 
   /// Get incomplete tasks for the current couple
   static Future<List<Task>> getIncompleteTasks() async {
-    final profile = await _getProfile();
+    final profile = await ProfileHelper.getCurrentProfile();
     if (profile == null) return [];
     
     final response = await _client
@@ -52,11 +60,10 @@ class TaskService {
 
   /// Get overdue tasks
   static Future<List<Task>> getOverdueTasks() async {
-    final profile = await _getProfile();
+    final profile = await ProfileHelper.getCurrentProfile();
     if (profile == null) return [];
     
-    final today = DateTime.now();
-    final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final todayStr = app_date.DateUtils.todayForDb;
     
     final response = await _client
         .from('tasks')
@@ -73,11 +80,10 @@ class TaskService {
 
   /// Get tasks due today
   static Future<List<Task>> getTasksDueToday() async {
-    final profile = await _getProfile();
+    final profile = await ProfileHelper.getCurrentProfile();
     if (profile == null) return [];
     
-    final today = DateTime.now();
-    final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final todayStr = app_date.DateUtils.todayForDb;
     
     final response = await _client
         .from('tasks')
@@ -94,7 +100,7 @@ class TaskService {
 
   /// Get tasks with no due date ("when you get to it")
   static Future<List<Task>> getTasksNoDueDate() async {
-    final profile = await _getProfile();
+    final profile = await ProfileHelper.getCurrentProfile();
     if (profile == null) return [];
     
     final response = await _client
@@ -112,7 +118,7 @@ class TaskService {
 
   /// Get recently completed tasks (last 7 days)
   static Future<List<Task>> getRecentlyCompletedTasks() async {
-    final profile = await _getProfile();
+    final profile = await ProfileHelper.getCurrentProfile();
     if (profile == null) return [];
     
     final weekAgo = DateTime.now().subtract(const Duration(days: 7));
@@ -143,7 +149,7 @@ class TaskService {
     String? assignedTo,
   }) async {
     final user = SupabaseService.currentUser;
-    final profile = await _getProfile();
+    final profile = await ProfileHelper.getCurrentProfile();
     
     if (user == null || profile == null) {
       throw Exception('Not authenticated');
@@ -157,7 +163,7 @@ class TaskService {
           'title': title,
           if (description != null && description.isNotEmpty) 'description': description,
           if (category != null) 'category': category,
-          if (dueDate != null) 'due_date': _formatDate(dueDate),
+          if (dueDate != null) 'due_date': app_date.DateUtils.formatDateForDb(dueDate),
           if (recurrencePattern != null) 'recurrence_pattern': recurrencePattern,
           if (recurrenceIntervalDays != null) 'recurrence_interval_days': recurrenceIntervalDays,
           if (assignedTo != null) 'assigned_to': assignedTo,
@@ -186,7 +192,7 @@ class TaskService {
   /// Triggers auto-creation of next recurring task (via database trigger)
   static Future<Task> completeTask(String taskId) async {
     final user = SupabaseService.currentUser;
-    final profile = await _getProfile();
+    final profile = await ProfileHelper.getCurrentProfile();
     
     if (user == null || profile == null) {
       throw Exception('Not authenticated');
@@ -248,7 +254,7 @@ class TaskService {
     
     Future<void> initialize() async {
       try {
-        final profile = await _getProfile();
+        final profile = await ProfileHelper.getCurrentProfile();
         if (profile == null || isCancelled) {
           if (!isCancelled) controller.add([]);
           return;
@@ -280,12 +286,13 @@ class TaskService {
                     controller.add(updatedTasks);
                   }
                 } catch (e) {
-                  // Silently fail - will retry on next change
+                  debugPrint('TaskService.watchTasks callback error: $e');
                 }
               },
             )
             .subscribe();
       } catch (e) {
+        debugPrint('TaskService.watchTasks initialize error: $e');
         if (!isCancelled) {
           controller.add([]);
         }
@@ -297,6 +304,7 @@ class TaskService {
     controller.onCancel = () {
       isCancelled = true;
       channel?.unsubscribe();
+      controller.close();
     };
     
     return controller.stream;
@@ -314,29 +322,8 @@ class TaskService {
       if (response == null) return null;
       return Task.fromJson(response);
     } catch (e) {
+      debugPrint('TaskService.getTaskById error: $e');
       return null;
     }
-  }
-
-  static Future<Profile?> _getProfile() async {
-    final user = SupabaseService.currentUser;
-    if (user == null) return null;
-    
-    try {
-      final response = await _client
-          .from('profiles')
-          .select()
-          .eq('id', user.id)
-          .maybeSingle();
-      
-      if (response == null) return null;
-      return Profile.fromJson(response);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  static String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

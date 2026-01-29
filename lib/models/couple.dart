@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
+
 /// Couple model representing a linked pair of users
 /// 
 /// Couples share:
 /// - All tasks (visible to both partners)
 /// - AI agent insights
 /// - Completion history
+@immutable
 class Couple {
   final String id;
   final String householdName;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -68,6 +70,7 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   bool _isLoading = true;
   Widget? _destination;
+  StreamSubscription<AuthState>? _authSubscription;
 
   @override
   void initState() {
@@ -75,13 +78,19 @@ class _AuthGateState extends State<AuthGate> {
     _checkAuthState();
     
     // Listen for auth changes
-    AuthService.onAuthStateChange.listen((state) {
+    _authSubscription = AuthService.onAuthStateChange.listen((state) {
       if (state.event == AuthChangeEvent.signedOut) {
         _navigateTo(const LoginScreen());
       } else if (state.event == AuthChangeEvent.signedIn) {
         _checkAuthState();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _checkAuthState() async {
@@ -140,6 +149,10 @@ class _AuthGateState extends State<AuthGate> {
       );
     }
     
-    return _destination!;
+    return _destination ?? const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
   }
 }

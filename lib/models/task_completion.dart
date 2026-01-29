@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
+
 /// TaskCompletion model for tracking completion history
 /// 
 /// Used by the pattern analyzer to detect recurring behaviors
 /// Stores 90 days of history for pattern detection
+@immutable
 class TaskCompletion {
   final String id;
   final String taskId;

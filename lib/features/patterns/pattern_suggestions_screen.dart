@@ -126,7 +126,7 @@ class _PatternSuggestionsScreenState extends State<PatternSuggestionsScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                "We noticed some patterns in your tasks. Want to make them recurring?",
+                                'We noticed some patterns in your tasks. Want to make them recurring?',
                                 style: AppTheme.body(
                                   fontSize: 14,
                                   color: AppTheme.charcoal,

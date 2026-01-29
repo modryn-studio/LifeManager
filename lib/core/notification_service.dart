@@ -54,9 +54,12 @@ class NotificationService {
   }
   
   /// Handle notification tap
+  /// 
+  /// For MVP, opening the app is sufficient. The app will show
+  /// the main task list which is the primary entry point.
   static void _onNotificationTapped(NotificationResponse response) {
-    // TODO: Navigate to relevant screen based on payload
-    // For MVP, just opening the app is sufficient
+    // MVP: App opens to main screen via normal launch flow
+    // Future: Use response.payload to navigate to specific content
   }
 
   /// Show a local notification
