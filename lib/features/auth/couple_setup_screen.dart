@@ -154,8 +154,7 @@ class _CoupleSetupScreenState extends State<CoupleSetupScreen> {
               const SizedBox(height: 16),
               
               Text(
-                'LifeManager works best when you\'re connected with your partner. '
-                'Enter their email below and we\'ll link your accounts when they join.',
+                'LifeManager helps you manage life together. Connect with your partner to share tasks and stay in sync, or continue solo for now.',
                 style: AppTheme.body(
                   fontSize: 16,
                   color: AppTheme.charcoal,

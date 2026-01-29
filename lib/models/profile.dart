@@ -5,14 +5,18 @@
 class Profile {
   final String id;
   final String coupleId;
-  final String? displayName;
+  final String fullName;
+  final String email;
+  final String? pendingPartnerEmail;
   final String timezone;
   final DateTime createdAt;
 
   const Profile({
     required this.id,
     required this.coupleId,
-    this.displayName,
+    required this.fullName,
+    required this.email,
+    this.pendingPartnerEmail,
     this.timezone = 'America/Chicago',
     required this.createdAt,
   });
@@ -22,7 +26,9 @@ class Profile {
     return Profile(
       id: json['id'] as String,
       coupleId: json['couple_id'] as String,
-      displayName: json['display_name'] as String?,
+      fullName: json['full_name'] as String,
+      email: json['email'] as String,
+      pendingPartnerEmail: json['pending_partner_email'] as String?,
       timezone: json['timezone'] as String? ?? 'America/Chicago',
       createdAt: DateTime.parse(json['created_at'] as String),
     );
@@ -33,7 +39,9 @@ class Profile {
     return {
       'id': id,
       'couple_id': coupleId,
-      'display_name': displayName,
+      'full_name': fullName,
+      'email': email,
+      'pending_partner_email': pendingPartnerEmail,
       'timezone': timezone,
     };
   }
@@ -42,21 +50,25 @@ class Profile {
   Profile copyWith({
     String? id,
     String? coupleId,
-    String? displayName,
+    String? fullName,
+    String? email,
+    String? pendingPartnerEmail,
     String? timezone,
     DateTime? createdAt,
   }) {
     return Profile(
       id: id ?? this.id,
       coupleId: coupleId ?? this.coupleId,
-      displayName: displayName ?? this.displayName,
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      pendingPartnerEmail: pendingPartnerEmail ?? this.pendingPartnerEmail,
       timezone: timezone ?? this.timezone,
       createdAt: createdAt ?? this.createdAt,
     );
   }
 
   /// Get display name or fallback to "Partner"
-  String get nameOrFallback => displayName ?? 'Partner';
+  String get nameOrFallback => fullName.isNotEmpty ? fullName : 'Partner';
 
   @override
   bool operator ==(Object other) =>

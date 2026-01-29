@@ -30,8 +30,8 @@ class CoupleService {
     final coupleResponse = await _client
         .from('couples')
         .insert({
-          if (partnerEmail != null && partnerEmail.isNotEmpty) 
-            'partner_email': partnerEmail.toLowerCase().trim(),
+          'household_name': displayName ?? 'My Household',
+          'timezone': 'America/Chicago',
         })
         .select()
         .single();
@@ -44,7 +44,9 @@ class CoupleService {
         .insert({
           'id': user.id,
           'couple_id': couple.id,
-          'display_name': displayName,
+          'full_name': displayName ?? 'User',
+          'email': user.email ?? '',
+          'pending_partner_email': partnerEmail?.toLowerCase().trim(),
           'timezone': 'America/Chicago',
         })
         .select()
@@ -55,8 +57,8 @@ class CoupleService {
 
   /// Try to join an existing couple via email lookup
   /// 
-  /// Looks for a couple where partner_email matches current user's email
-  /// If found, creates a profile and clears the partner_email
+  /// Looks for a profile where pending_partner_email matches current user's email
+  /// If found, creates a profile for this user linked to the same couple
   /// 
   /// Returns the profile if joined, null if no matching couple
   static Future<Profile?> tryJoinExistingCouple({
@@ -70,35 +72,29 @@ class CoupleService {
     final userEmail = user.email?.toLowerCase().trim();
     if (userEmail == null) return null;
     
-    // Look for a couple waiting for this email
-    final coupleResponse = await _client
-        .from('couples')
-        .select()
-        .eq('partner_email', userEmail)
+    // Look for a profile waiting for this email
+    final existingProfileResponse = await _client
+        .from('profiles')
+        .select('couple_id')
+        .eq('pending_partner_email', userEmail)
         .maybeSingle();
     
-    if (coupleResponse == null) return null;
+    if (existingProfileResponse == null) return null;
     
-    final couple = Couple.fromJson(coupleResponse);
+    final coupleId = existingProfileResponse['couple_id'] as String;
     
     // Create profile for this couple
     final profileResponse = await _client
         .from('profiles')
         .insert({
           'id': user.id,
-          'couple_id': couple.id,
-          'display_name': displayName,
+          'couple_id': coupleId,
+          'full_name': displayName ?? 'User',
+          'email': user.email ?? '',
           'timezone': 'America/Chicago',
         })
         .select()
         .single();
-    
-    // Clear the partner_email (they've joined!)
-    // Note: This is also handled by the link_pending_partner trigger
-    await _client
-        .from('couples')
-        .update({'partner_email': null})
-        .eq('id', couple.id);
     
     return Profile.fromJson(profileResponse);
   }
