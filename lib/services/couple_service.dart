@@ -26,30 +26,23 @@ class CoupleService {
       throw Exception('Not authenticated');
     }
     
-    // Create the couple first
-    final coupleResponse = await _client
-        .from('couples')
-        .insert({
-          'household_name': displayName ?? 'My Household',
-          'timezone': 'America/Chicago',
-        })
-        .select()
-        .single();
+    final householdName = displayName != null ? "$displayName's Household" : 'My Household';
     
-    final couple = Couple.fromJson(coupleResponse);
+    // Use RPC function to bypass RLS circular dependency
+    await _client.rpc('create_couple_with_profile', params: {
+      'p_household_name': householdName,
+      'p_timezone': 'America/Chicago',
+      'p_user_id': user.id,
+      'p_full_name': displayName ?? 'User',
+      'p_email': user.email ?? '',
+      'p_pending_partner_email': partnerEmail?.toLowerCase().trim(),
+    });
     
-    // Create the profile linked to this couple
+    // Fetch the created profile
     final profileResponse = await _client
         .from('profiles')
-        .insert({
-          'id': user.id,
-          'couple_id': couple.id,
-          'full_name': displayName ?? 'User',
-          'email': user.email ?? '',
-          'pending_partner_email': partnerEmail?.toLowerCase().trim(),
-          'timezone': 'America/Chicago',
-        })
         .select()
+        .eq('id', user.id)
         .single();
     
     return Profile.fromJson(profileResponse);
@@ -127,10 +120,10 @@ class CoupleService {
     return emailRegex.hasMatch(email.trim());
   }
 
-  /// Get pending partner email (if any)
+  /// Get pending partner email (if any) from current user's profile
   static Future<String?> getPendingPartnerEmail() async {
-    final couple = await getCurrentCouple();
-    return couple?.partnerEmail;
+    final profile = await _getProfile();
+    return profile?.pendingPartnerEmail;
   }
 
   /// Check if couple is fully linked (has 2 members)

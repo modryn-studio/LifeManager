@@ -6,12 +6,14 @@
 /// - Completion history
 class Couple {
   final String id;
-  final String? partnerEmail;
+  final String householdName;
+  final String timezone;
   final DateTime createdAt;
 
   const Couple({
     required this.id,
-    this.partnerEmail,
+    required this.householdName,
+    this.timezone = 'America/Chicago',
     required this.createdAt,
   });
 
@@ -19,13 +21,11 @@ class Couple {
   factory Couple.fromJson(Map<String, dynamic> json) {
     return Couple(
       id: json['id'] as String,
-      partnerEmail: json['partner_email'] as String?,
+      householdName: json['household_name'] as String,
+      timezone: json['timezone'] as String? ?? 'America/Chicago',
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
-
-  /// Check if waiting for partner to join
-  bool get isWaitingForPartner => partnerEmail != null;
 
   @override
   bool operator ==(Object other) =>
