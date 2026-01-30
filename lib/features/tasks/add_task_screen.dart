@@ -232,22 +232,25 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           style: AppTheme.handwritten(fontSize: 24),
         ),
         actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _handleSave,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(
-                    'Save',
-                    style: AppTheme.body(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.softSage,
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton(
+              onPressed: _isLoading ? null : _handleSave,
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(
+                      'Save',
+                      style: AppTheme.body(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.softSage,
+                      ),
                     ),
-                  ),
+            ),
           ),
         ],
       ),

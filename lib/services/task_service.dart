@@ -192,10 +192,13 @@ class TaskService {
   /// Triggers auto-creation of next recurring task (via database trigger)
   static Future<Task> completeTask(String taskId) async {
     final user = SupabaseService.currentUser;
-    final profile = await ProfileHelper.getCurrentProfile();
-    
-    if (user == null || profile == null) {
+    if (user == null) {
       throw Exception('Not authenticated');
+    }
+    
+    final profile = await ProfileHelper.getCurrentProfile();
+    if (profile == null) {
+      throw Exception('Profile not found. Please sign in again.');
     }
     
     // Mark task as completed
@@ -222,6 +225,13 @@ class TaskService {
 
   /// Mark a task as incomplete (undo completion)
   static Future<Task> uncompleteTask(String taskId) async {
+    // First, delete any task_completions records for this task
+    await _client
+        .from('task_completions')
+        .delete()
+        .eq('task_id', taskId);
+    
+    // Then update the task to mark as incomplete
     final response = await _client
         .from('tasks')
         .update({
@@ -280,6 +290,7 @@ class TaskService {
               callback: (payload) async {
                 if (isCancelled) return;
                 try {
+                  debugPrint('Real-time event received: ${payload.eventType}');
                   // Refresh the full list on any change
                   final updatedTasks = await getAllTasks();
                   if (!isCancelled) {
@@ -290,11 +301,17 @@ class TaskService {
                 }
               },
             )
-            .subscribe();
+            .subscribe((status, error) {
+              if (error != null) {
+                debugPrint('Real-time subscription error: $error');
+              } else {
+                debugPrint('Real-time subscription status: $status');
+              }
+            });
       } catch (e) {
         debugPrint('TaskService.watchTasks initialize error: $e');
         if (!isCancelled) {
-          controller.add([]);
+          controller.addError(e);
         }
       }
     }

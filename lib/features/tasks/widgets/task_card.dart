@@ -93,8 +93,18 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
       
       if (mounted) widget.onCompleted?.call();
     } catch (e) {
-      if (mounted && !widget.task.isCompleted) {
-        _animationController.reverse();
+      if (mounted) {
+        // Revert animation on error
+        if (!widget.task.isCompleted) {
+          _animationController.reverse();
+        }
+        // Show error to user
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update task. Please try again.'),
+            backgroundColor: AppTheme.warmPeach,
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -242,7 +252,7 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
                       // Subtitle row
                       Row(
                         children: [
-                          // Due date or recurrence
+                          // Due date
                           if (widget.task.dueDate != null) ...[
                             Icon(
                               Icons.schedule,
@@ -257,21 +267,44 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
                                 color: isOverdue ? AppTheme.warmPeach : AppTheme.warmGray,
                               ),
                             ),
-                          ] else if (widget.task.isRecurring) ...[
-                            const Icon(
-                              Icons.repeat,
-                              size: 14,
-                              color: AppTheme.warmGray,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              widget.task.recurrenceDescription,
-                              style: AppTheme.body(
-                                fontSize: 13,
-                                color: AppTheme.warmGray,
+                          ],
+                          
+                          // Recurrence indicator
+                          if (widget.task.isRecurring) ...[
+                            if (widget.task.dueDate != null) const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.softSage.withAlpha(51),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.repeat,
+                                    size: 12,
+                                    color: AppTheme.softSage,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    widget.task.recurrenceDescription,
+                                    style: AppTheme.body(
+                                      fontSize: 11,
+                                      color: AppTheme.softSage,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ] else ...[
+                          ],
+                          
+                          // No due date message
+                          if (!widget.task.isRecurring && widget.task.dueDate == null) ...[
                             Text(
                               'When you get to it',
                               style: AppTheme.body(

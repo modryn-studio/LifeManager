@@ -141,4 +141,19 @@ class CoupleService {
   static Future<Profile?> getCurrentProfile() async {
     return ProfileHelper.getCurrentProfile();
   }
+
+  /// Update pending partner email for current user's profile
+  /// 
+  /// Used when user wants to add a partner after initial setup
+  static Future<void> updatePendingPartnerEmail(String partnerEmail) async {
+    final user = SupabaseService.currentUser;
+    if (user == null) {
+      throw Exception('Not authenticated');
+    }
+    
+    await _client
+        .from('profiles')
+        .update({'pending_partner_email': partnerEmail.toLowerCase().trim()})
+        .eq('id', user.id);
+  }
 }

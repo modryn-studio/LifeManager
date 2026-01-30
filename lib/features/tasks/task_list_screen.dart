@@ -71,11 +71,17 @@ class _TaskListScreenState extends State<TaskListScreen> {
       _pendingPatternCount = await PatternService.getPendingPatternCount();
       
       // Subscribe to real-time task updates
-      _taskSubscription = TaskService.watchTasks().listen((tasks) {
-        if (mounted) {
-          setState(() => _tasks = tasks);
-        }
-      });
+      _taskSubscription = TaskService.watchTasks().listen(
+        (tasks) {
+          if (mounted) {
+            setState(() => _tasks = tasks);
+          }
+        },
+        onError: (error) {
+          debugPrint('Task stream error: $error');
+          // Continue with existing tasks on error
+        },
+      );
       
       setState(() => _isLoading = false);
     } catch (e) {
@@ -110,6 +116,105 @@ class _TaskListScreenState extends State<TaskListScreen> {
         }
       });
     });
+  }
+
+  void _navigateToAddPartner() async {
+    final emailController = TextEditingController();
+    String? errorMessage;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            'Add Your Partner',
+            style: AppTheme.handwritten(
+              fontSize: 24,
+              color: AppTheme.charcoal,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Enter your partner's email address. They'll be linked to your household when they sign up.",
+                style: AppTheme.body(
+                  fontSize: 14,
+                  color: AppTheme.warmGray,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: 'Partner Email',
+                  errorText: errorMessage,
+                  border: OutlineInputBorder(
+                    borderRadius: AppRadius.input,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final email = emailController.text.trim();
+                
+                if (email.isEmpty) {
+                  setState(() => errorMessage = 'Please enter an email');
+                  return;
+                }
+                
+                if (!CoupleService.isValidEmailFormat(email)) {
+                  setState(() => errorMessage = 'Please enter a valid email');
+                  return;
+                }
+                
+                try {
+                  await CoupleService.updatePendingPartnerEmail(email);
+                  if (context.mounted) {
+                    Navigator.of(context).pop(true);
+                  }
+                } catch (e) {
+                  debugPrint('Error updating pending partner email: $e');
+                  if (mounted) {
+                    setState(() => errorMessage = e.toString().contains('duplicate')
+                        ? 'This email is already linked'
+                        : 'Failed to save email. Please try again.');
+                  }
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true) {
+      // Refresh data to show the new pending partner email
+      _initializeData();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "We'll link you when ${emailController.text.trim()} joins",
+            ),
+            backgroundColor: AppTheme.gentleGreen,
+          ),
+        );
+      }
+    }
+    
+    emailController.dispose();
   }
 
   Future<void> _handleSignOut() async {
@@ -369,35 +474,46 @@ class _TaskListScreenState extends State<TaskListScreen> {
   }
 
   Widget _buildPartnerPendingCard() {
-    return Container(
-      padding: AppSpacing.cardPadding,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: AppRadius.card,
-        border: Border.all(
-          color: AppTheme.cardBorder,
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.favorite_border,
-            color: AppTheme.mutedCoral,
+    final bool canTap = _pendingPartnerEmail == null;
+    
+    return InkWell(
+      onTap: canTap ? _navigateToAddPartner : null,
+      borderRadius: AppRadius.card,
+      child: Container(
+        padding: AppSpacing.cardPadding,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: AppRadius.card,
+          border: Border.all(
+            color: AppTheme.cardBorder,
+            width: 1,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _pendingPartnerEmail != null
-                  ? "We'll link you when $_pendingPartnerEmail joins"
-                  : 'Add your partner to share tasks',
-              style: AppTheme.body(
-                fontSize: 14,
-                color: AppTheme.warmGray,
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.favorite_border,
+              color: AppTheme.mutedCoral,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _pendingPartnerEmail != null
+                    ? "We'll link you when $_pendingPartnerEmail joins"
+                    : 'Add your partner to share tasks',
+                style: AppTheme.body(
+                  fontSize: 14,
+                  color: AppTheme.warmGray,
+                ),
               ),
             ),
-          ),
-        ],
+            if (canTap)
+              const Icon(
+                Icons.chevron_right,
+                color: AppTheme.warmGray,
+              ),
+          ],
+        ),
       ),
     );
   }

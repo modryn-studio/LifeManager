@@ -24,7 +24,7 @@ class AgentService {
       final response = await SupabaseService.client
           .from('reminders_log')
           .select()
-          .eq('couple_id', profile.coupleId)
+          .eq('sent_to', profile.id)
           .filter('acknowledged_at', 'is', null)
           .gte('sent_at', yesterday.toIso8601String())
           .order('sent_at', ascending: false);
@@ -62,7 +62,7 @@ class AgentService {
     }
   }
 
-  /// Acknowledge all reminders for the current couple
+  /// Acknowledge all reminders for the current user
   static Future<void> acknowledgeAllReminders() async {
     try {
       final profile = await ProfileHelper.getCurrentProfile();
@@ -71,7 +71,7 @@ class AgentService {
       await SupabaseService.client
           .from('reminders_log')
           .update({'acknowledged_at': DateTime.now().toIso8601String()})
-          .eq('couple_id', profile.coupleId)
+          .eq('sent_to', profile.id)
           .filter('acknowledged_at', 'is', null);
     } catch (e) {
       debugPrint('AgentService.acknowledgeAllReminders error: $e');
