@@ -156,4 +156,22 @@ class CoupleService {
         .update({'pending_partner_email': partnerEmail.toLowerCase().trim()})
         .eq('id', user.id);
   }
+
+  /// Cancel pending partner invitation
+  /// 
+  /// Clears the pending_partner_email field, allowing user to:
+  /// - Cancel an invitation that was never accepted
+  /// - Remove an email that was entered incorrectly
+  /// - Continue using the app solo
+  static Future<void> cancelPendingPartnerInvitation() async {
+    final user = SupabaseService.currentUser;
+    if (user == null) {
+      throw Exception('Not authenticated');
+    }
+    
+    await _client
+        .from('profiles')
+        .update({'pending_partner_email': null})
+        .eq('id', user.id);
+  }
 }

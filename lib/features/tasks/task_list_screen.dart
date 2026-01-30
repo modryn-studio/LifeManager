@@ -217,6 +217,132 @@ class _TaskListScreenState extends State<TaskListScreen> {
     emailController.dispose();
   }
 
+  Future<void> _showPartnerInviteOptions() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Partner Invitation',
+          style: AppTheme.handwritten(
+            fontSize: 24,
+            color: AppTheme.charcoal,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Invitation sent to:',
+              style: AppTheme.body(
+                fontSize: 14,
+                color: AppTheme.warmGray,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _pendingPartnerEmail ?? '',
+              style: AppTheme.body(
+                fontSize: 16,
+                color: AppTheme.charcoal,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "They'll be automatically linked when they sign up with this email.",
+              style: AppTheme.body(
+                fontSize: 14,
+                color: AppTheme.warmGray,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('cancel'),
+            child: const Text('Cancel Invitation'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('change'),
+            child: const Text('Change Email'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(null),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'cancel') {
+      await _handleCancelInvitation();
+    } else if (result == 'change') {
+      _navigateToAddPartner();
+    }
+  }
+
+  Future<void> _handleCancelInvitation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Cancel Invitation?',
+          style: AppTheme.handwritten(
+            fontSize: 24,
+            color: AppTheme.charcoal,
+          ),
+        ),
+        content: Text(
+          'This will remove the pending invitation. You can add a partner again later.',
+          style: AppTheme.body(
+            fontSize: 14,
+            color: AppTheme.warmGray,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep Invitation'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.warmPeach,
+            ),
+            child: const Text('Cancel Invitation'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await CoupleService.cancelPendingPartnerInvitation();
+        _initializeData(); // Refresh to update UI
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Partner invitation cancelled'),
+              backgroundColor: AppTheme.gentleGreen,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Error cancelling invitation: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to cancel invitation. Please try again.'),
+              backgroundColor: AppTheme.warmPeach,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _handleSignOut() async {
     await AuthService.signOut();
     if (!mounted) return;
@@ -474,10 +600,10 @@ class _TaskListScreenState extends State<TaskListScreen> {
   }
 
   Widget _buildPartnerPendingCard() {
-    final bool canTap = _pendingPartnerEmail == null;
+    final bool hasPendingInvite = _pendingPartnerEmail != null;
     
     return InkWell(
-      onTap: canTap ? _navigateToAddPartner : null,
+      onTap: hasPendingInvite ? _showPartnerInviteOptions : _navigateToAddPartner,
       borderRadius: AppRadius.card,
       child: Container(
         padding: AppSpacing.cardPadding,
@@ -497,21 +623,36 @@ class _TaskListScreenState extends State<TaskListScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                _pendingPartnerEmail != null
-                    ? "We'll link you when $_pendingPartnerEmail joins"
-                    : 'Add your partner to share tasks',
-                style: AppTheme.body(
-                  fontSize: 14,
-                  color: AppTheme.warmGray,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    hasPendingInvite
+                        ? 'Partner Invitation Sent'
+                        : 'Add your partner to share tasks',
+                    style: AppTheme.body(
+                      fontSize: 14,
+                      color: hasPendingInvite ? AppTheme.charcoal : AppTheme.warmGray,
+                      fontWeight: hasPendingInvite ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                  if (hasPendingInvite) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      "Waiting for $_pendingPartnerEmail to join",
+                      style: AppTheme.body(
+                        fontSize: 13,
+                        color: AppTheme.warmGray,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-            if (canTap)
-              const Icon(
-                Icons.chevron_right,
-                color: AppTheme.warmGray,
-              ),
+            Icon(
+              hasPendingInvite ? Icons.more_horiz : Icons.chevron_right,
+              color: AppTheme.warmGray,
+            ),
           ],
         ),
       ),
